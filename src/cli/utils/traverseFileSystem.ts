@@ -24,7 +24,7 @@ export const traverseFileSystem = async (
     try {
       await fs.access(inputPath);
     } catch (error) {
-      console.error('The provided folder path does not exist.');
+      console.error('The provided folder path does not exist - ' + inputPath);
       return;
     }
 

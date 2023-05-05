@@ -6,8 +6,8 @@ import { createVectorStore } from './createVectorStore.js';
 import { processRepository } from './processRepository.js';
 
 export const index = async ({
-  name,
-  repositoryUrl,
+  orgName,
+  repos,
   root,
   output,
   llms,
@@ -30,8 +30,8 @@ export const index = async ({
 
   updateSpinnerText('Processing repository...');
   await processRepository({
-    name,
-    repositoryUrl,
+    orgName,
+    repos,
     root,
     output: json,
     llms,
@@ -51,8 +51,8 @@ export const index = async ({
    */
   updateSpinnerText('Creating markdown files...');
   await convertJsonToMarkdown({
-    name,
-    repositoryUrl,
+    orgName,
+    repos,
     root: json,
     output: markdown,
     llms,
@@ -68,8 +68,8 @@ export const index = async ({
 
   updateSpinnerText('Create vector files...');
   await createVectorStore({
-    name,
-    repositoryUrl,
+    orgName,
+    repos,
     root: markdown,
     output: data,
     llms,

@@ -28,14 +28,19 @@ const clearScreenAndMoveCursorToTop = () => {
 };
 
 export const query = async (
-  { name, repositoryUrl, output, contentType, chatPrompt, targetAudience}: AutodocRepoConfig,
+  {
+    orgName,
+    output,
+    contentType,
+    chatPrompt,
+    targetAudience,
+  }: AutodocRepoConfig,
   { llms }: AutodocUserConfig,
 ) => {
   const data = path.join(output, 'docs', 'data/');
   const vectorStore = await HNSWLib.load(data, new OpenAIEmbeddings());
   const chain = makeChain(
-    name,
-    repositoryUrl,
+    orgName,
     contentType,
     chatPrompt,
     targetAudience,
@@ -48,14 +53,14 @@ export const query = async (
   );
 
   clearScreenAndMoveCursorToTop();
-  displayWelcomeMessage(name);
+  displayWelcomeMessage(orgName);
 
   const getQuestion = async () => {
     const { question } = await inquirer.prompt([
       {
         type: 'input',
         name: 'question',
-        message: chalk.yellow(`How can I help with ${name}?\n`),
+        message: chalk.yellow(`How can I help with ${orgName}?\n`),
       },
     ]);
 

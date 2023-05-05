@@ -8,8 +8,8 @@ export const makeConfigTemplate = (
   config?: AutodocRepoConfig,
 ): AutodocRepoConfig => {
   return {
-    name: config?.name ?? '',
-    repositoryUrl: config?.repositoryUrl ?? '',
+    orgName: config?.orgName ?? '',
+    repos: config?.repos ?? [{ name: '', repositoryUrl: '' }],
     root: '.',
     output: './.autodoc',
     llms:
@@ -75,18 +75,48 @@ export const init = async (
     }
   }
 
+  // first prompt the user on whether they want to crawl an organization or a repo
+  const orgOrRepo = [
+    {
+      type: 'list',
+      name: 'orgOrRepo',
+      message: chalk.yellow(
+        `Do you want to crawl an organization or a repository?`,
+      ),
+      default: 0,
+      choices: [
+        {
+          name: 'Organization',
+          value: 'org',
+        },
+        {
+          name: 'Repository',
+          value: 'repo',
+        },
+      ],
+    },
+  ];
+
+  const { orgOrRepo: orgOrRepoAnswer } = await inquirer.prompt(orgOrRepo);
+
   const questions = [
+    {
+      type: 'input',
+      name: 'orgName',
+      message: chalk.yellow(`Enter the name of the github org:`),
+      default: config.orgName,
+    },
     {
       type: 'input',
       name: 'name',
       message: chalk.yellow(`Enter the name of your repository:`),
-      default: config.name,
+      default: config.repos[0].name,
     },
     {
       type: 'input',
       name: 'repositoryUrl',
       message: chalk.yellow(`Enter the GitHub URL of your repository:`),
-      default: config.repositoryUrl,
+      default: config.repos[0].repositoryUrl,
     },
     {
       type: 'list',
@@ -114,7 +144,7 @@ export const init = async (
       type: 'input',
       name: 'filePrompt',
       message: chalk.yellow(
-        `Enter the prompt you want to use for generating file-level documentation:`,
+        `Enter the prompt you want to use for generating file-level documentation (ENTER for default):`,
       ),
       default: config.filePrompt,
     },
@@ -122,19 +152,59 @@ export const init = async (
       type: 'input',
       name: 'folderPrompt',
       message: chalk.yellow(
-        `Enter the prompt you want to use for generating folder-level documentation:`,
+        `Enter the prompt you want to use for generating folder-level documentation (ENTER for default):`,
       ),
       default: config.folderPrompt,
     },
   ];
 
-  const { name, repositoryUrl, llms, filePrompt, folderPrompt } =
+  const { orgName, name, repositoryUrl, llms, filePrompt, folderPrompt } =
     await inquirer.prompt(questions);
+
+  // if crawlType is org, then we need to get the list of repos
+  // from the org and then process each repo
+  // if crawlType is repo, then we need to process the repo
+  // eslint-disable-next-line prefer-const
+  let repos: [{ name: string; repositoryUrl: string }] | undefined;
+  if (orgOrRepoAnswer === 'org') {
+    const authToken = process.env.GITHUB_TOKEN;
+    if (!authToken) {
+      console.log(
+        'You must set the GITHUB_TOKEN environment variable to use the org crawl type.',
+      );
+      process.exit(1);
+    }
+    fetch(`https://api.github.com/orgs/${orgName}/repos`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        data.forEach((repo: { name: any; html_url: any }) => {
+          if (!repos) {
+            repos = [{ name: repo.name, repositoryUrl: repo.html_url }];
+          } else {
+            repos.push({ name: repo.name, repositoryUrl: repo.html_url });
+          }
+        });
+      })
+      .catch((error) => console.error(error));
+  } else {
+    repos = [{ name: name, repositoryUrl: repositoryUrl }];
+  }
+
+  if (!repos) {
+    console.log('No repos found. Exiting...');
+    process.exit(1);
+  } else {
+    console.log('repos found under org ' + orgName + ': ' + repos.length);
+  }
 
   const newConfig = makeConfigTemplate({
     ...config,
-    name,
-    repositoryUrl,
+    orgName: orgName,
+    repos: repos,
     llms,
     filePrompt,
     folderPrompt,

@@ -9,8 +9,8 @@ import {
 import chalk from 'chalk';
 
 export const estimate = async ({
-  name,
-  repositoryUrl,
+  orgName,
+  repos,
   root,
   output,
   llms,
@@ -32,8 +32,8 @@ export const estimate = async ({
 
   const runDetails = await processRepository(
     {
-      name,
-      repositoryUrl,
+      orgName,
+      repos,
       root,
       output: json,
       llms,

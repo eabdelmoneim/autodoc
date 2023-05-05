@@ -5,8 +5,8 @@ export type AutodocUserConfig = {
 };
 
 export type AutodocRepoConfig = {
-  name: string;
-  repositoryUrl: string;
+  orgName: string;
+  repos: { name: string; repositoryUrl: string }[];
   root: string;
   output: string;
   llms: LLMModels[];
